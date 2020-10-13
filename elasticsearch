@@ -1,0 +1,83 @@
+docker 中下载 elasticsearch 镜像
+
+下载镜像
+docker pull elasticsearch:7.9.0
+
+查看下载的镜像
+docker images
+
+从elasticsearch镜像中启动一个elasticsearch容器
+docker run -d --name elasticsearch --net elk -p 9200:9200 -p 9300:9300 -e "discovery.type=single-node" -v $(pwd)/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml elasticsearch:7.9.0 
+
+说明：
+--net 是自定义的docker网络 elk 是网络的名称
+-p 9200 和 9300 是 elasticsearch 需要开放的端口
+discovery.type: single-node 单节点模式，方便部署使用
+-v 挂在目录 其中$(pwd)/elasticsearch.yml 是主机的目录地址，方便更改配置 。/usr/share/elasticsearch/config/elasticsearch.yml 是容器里面对应的配置文件
+
+elasticsearch 访问地址
+http://locahost:9200
+
+返回以下，说明成功：
+{
+"name": "b9420951a8f5",
+"cluster_name": "docker-cluster",
+"cluster_uuid": "68x5QE7iRyy03pRfqvl6_w",
+"version": {
+"number": "7.9.0",
+"build_flavor": "default",
+"build_type": "docker",
+"build_hash": "a479a2a7fce0389512d6a9361301708b92dff667",
+"build_date": "2020-08-11T21:36:48.204330Z",
+"build_snapshot": false,
+"lucene_version": "8.6.0",
+"minimum_wire_compatibility_version": "6.8.0",
+"minimum_index_compatibility_version": "6.0.0-beta1"
+},
+"tagline": "You Know, for Search"
+}
+
+附上 elasticsearch.yml 配置文件
+
+cluster.name: "docker-cluster"  #集群名称
+network.host: 0.0.0.0           #允许外网访问
+http.cors.enabled: true         #允许跨域
+http.cors.allow-origin: "*"     #跨域所有操作
+http.cors.allow-headers: Authorization #请求头验证
+xpack.security.enabled: true  #开启验证
+xpack.security.transport.ssl.enabled: true #开启ssl验证
+
+如果开启的账户验证，需要进入es的容器中，生成帐号和密码
+进入容器代码
+docker exec -it 容器id /bin/bash 我这里是 docker exec -it elasticsearch /bin/bash
+然后进入执行bin目录，执行./elasticsearch-setup-passwords interactive
+显示如下：
+Enter password for [elastic]:
+Reenter password for [elastic]:
+Passwords do not match.
+Try again.
+Enter password for [elastic]:
+Reenter password for [elastic]:
+Enter password for [apm_system]:
+Reenter password for [apm_system]:
+Enter password for [kibana]:
+Reenter password for [kibana]:
+Enter password for [logstash_system]:
+Reenter password for [logstash_system]:
+Enter password for [beats_system]:
+Reenter password for [beats_system]:
+Enter password for [remote_monitoring_user]:
+Reenter password for [remote_monitoring_user]:
+Changed password for user [apm_system]
+Changed password for user [kibana]
+Changed password for user [logstash_system]
+Changed password for user [beats_system]
+Changed password for user [remote_monitoring_user]
+Changed password for user [elastic]
+
+需要一个个设置过来，后面kibana和logstash中要用。
+重启ES
+访问：http://locahost:9200 会要求输入帐号和密码
+
+
+
