@@ -1,0 +1,11 @@
+docker 中下载 kibana 镜像
+
+下载镜像
+docker pull docker.elastic.co/kibana/kibana:7.9.2
+
+查看下载的镜像
+docker images
+
+从kibana镜像中启动一个kibana容器
+
+
