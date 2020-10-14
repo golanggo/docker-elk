@@ -19,7 +19,7 @@ docker run -d --name=filebeat --network elk  -v $(pwd)/filebeat.docker.yml:/usr/
 因为是临时搭建的，建议将需要读取到es的日志或其他文件都归属到一个文件下，这样就方便了。
 
 文件filebeat.docker.yml
-
+========================
 filebeat.inputs:
 - type: log
   enabled: true
@@ -52,19 +52,10 @@ filebeat.inputs:
   multiline.match: after
   multiline.timeout: 5s
   include_lines: ['.*dev.ERROR.*']
-
-#output.elasticsearch:
-#  hosts: ["47.103.68.154:9200"]
-#  indices:
-#    - index: "nginx-access-%{[agent.version]}-%{+yyyy.MM.dd}"
-#      when.equals:
-#       fields.source: nginx
-#    - index: "mysql-slow-%{[agent.version]}-%{+yyy.MM.dd}"
-#      when.equals:
-#        fields.source: mysql
-#    - index: "laravel-error-%{[agent.version]}-%{+yyy.MM.dd}"
-#      when.equals:
-#        fields.source: laravel
-
 output.logstash:
   hosts: ["47.103.68.154:5044"]
+
+文件说明：
+filebeat 主要作用：监听指定的日志文件，其中由于很多日志文件的同一个信息会换行，这里可以将同一条日志信息合并成一行来处理。然后输出到logstash.
+这里大家会问为什么不用filebeat直接输出到Elasticsearch？刚开始我也是这么觉得，后来写mysql慢日志查询的时候，发现filebeat无法提取到日志中的数据。后来才使用了logstash。
+
