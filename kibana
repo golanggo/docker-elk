@@ -28,7 +28,7 @@ elasticsearch.hosts: [ "http://47.103.68.154:9200" ] ##ES访问地址
 xpack.monitoring.ui.container.elasticsearch.enabled: true ##不知道啥作用，知道的哥么可以告诉我
 
 elasticsearch.username: "elastic"  ##访问ES的账号密码
-elasticsearch.password: "nuohui168"
+elasticsearch.password: "***"
 
 
 #monitoring.ui.container.elasticsearch.enabled: true
