@@ -1,0 +1,89 @@
+docker 中下载 logstash 镜像
+
+下载镜像
+docker pull docker.elastic.co/logstash/logstash:7.9.0
+
+查看下载的镜像
+docker images
+
+从logstash镜像中启动一个logstash容器
+docker run -d --name=logstash --network elk  -p 5044:5044 -p 9600:9600 -v $(pwd)/logstash.conf:/usr/share/logstash/config/logstash.conf -v $(pwd)/logstash.yml:/usr/share/logstash/config/logstash.yml docker.elastic.co/logstash/logstash:7.9.0
+
+docker ps -a 可以查看运行状态
+
+修改配置文件
+
+logstash.yml
+=============
+http.host: 0.0.0.0
+xpack.monitoring.elasticsearch.hosts: [ "http://47.103.68.154:9200" ]
+xpack.monitoring.enabled: true
+pipeline.separate_logs: true
+
+xpack.monitoring.elasticsearch.username: logstash_system
+xpack.monitoring.elasticsearch.password: ***
+
+
+logstash.conf
+==============
+input {
+    beats {
+        port => 5044
+    }
+}
+
+
+filter{
+
+   if [fields][source] == 'mysql'{
+     grok{
+         match => {"message" =>"(?m)^#\s+User@Host:\s+%{USER:user}\[[^\]]+\]\s+@\s+(?:(?<clienthost>\S*) )?\[(?:%{IPV4:clientip})?\]\s+Id:\s+%{NUMBER:row_id:int}\n#\s+Query_time:\s+%{NUMBER:query_time:float}\s+Lock_time:\s+%{NUMBER:lock_time:float}\s+Rows_sent:\s+%{NUMBER:rows_sent:int}\s+Rows_examined:\s+%{NUMBER:rows_examined:int}\n\s*(?:use %{DATA:database};\s*\n)?SET\s+timestamp=%{NUMBER:timestamp};\n\s*(?<sql>(?<action>\w+)\b.*;)\s*(?:\n#\s+Time)?.*$"}
+     }
+    if[Query_time]{
+       mutate {
+          add_field => { "query_time" => "%{query_time}" }
+       }
+    }
+   }
+}
+output {
+
+  if [fields][source] == 'nginx'{
+    elasticsearch{
+       hosts => ["47.103.68.154:9200"]
+       index => "nginx-access-%{+yyyy.MM.dd}"
+       user => "elastic"
+       password => "nuohui168"
+    } 
+  }
+
+  if [fields][source] == 'mysql'{
+    elasticsearch{
+       hosts => ["47.103.68.154:9200"]
+       index => "mysql-slow-%{+yyy.MM.dd}"
+       user => "elastic"
+       password => "nuohui168"
+    }
+  }
+
+  if [fields][source] == 'laravel'{
+    elasticsearch{
+       hosts => ["47.103.68.154:9200"]
+       index => "laravel-error-%{[agent.version]}-%{+yyy.MM.dd}"
+       user => "elastic"
+       password => "nuohui168"
+    }
+  }
+
+  stdout {
+           codec => rubydebug
+  }
+}
+
+这个配置文件是最复杂的，因为要先看filebeat的配置，这里是解析filebeat过来的数据，做了过滤。
+其中有一段使用了grok 附上在线解析地址 http://grok.51vagaa.com/
+P.S. 这里大概说下逻辑：
+首先通过filebeat监听相关日志文件，将多行变成一行，同时增加一个自定义字段type来区分数据是来源，输入到logstash，logstash自定义解析方式同时可以提取字段，在kibana增加新的统计字段
+同时还可以定义索引名称。最终输入到Elasticsearch。
+
+这里还是比较复杂的，需要多看文档去尝试理解。
